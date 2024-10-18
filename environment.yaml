@@ -1,9 +1,20 @@
-name: LiDAR
+# Please run this script by: conda env create -f environment.yaml -n text2lidar
+# For subsequent attempts, please run: conda env update --file environment.yaml -n text2lidar
+
+name: LiDAR  # text2lidar
+
 channels:
+  # Add TUNA mirror
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/pro
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
   - pytorch
   - nvidia
   - conda-forge
   - defaults
+
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_kmp_llvm
@@ -362,4 +373,5 @@ dependencies:
       - tokenizers==0.19.1
       - transformers==4.40.2
       - wcwidth==0.2.13
+
 prefix: /root/anaconda3/envs/LiDAR
