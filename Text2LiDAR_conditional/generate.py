@@ -13,10 +13,11 @@ import utils.inference
 import utils.render
 import matplotlib.pyplot as plt
 
+
 def main(args):
     torch.set_grad_enabled(False)
     torch.backends.cudnn.benchmark = True
-    clip_model = clip.load("ViT-B/32",device=args.device)
+    clip_model = clip.load("ViT-B/32", device=args.device)
     # =================================================================================
     # Load pre-trained model
     # =================================================================================
@@ -39,18 +40,17 @@ def main(args):
     # text = ["Dense traffic at other lane", "Bus, turn right, peds, bus stop"] # 11
     # text = ["Cross intersection, construction vehicle, truck, many peds", "Cross intersection, construction vehicle, truck, many peds"] # 12
     # text = ["Rain, Cross intersection, construction vehicle, truck, many peds", "Cross intersection, construction vehicle, truck, many peds"] # 13
-    # text = ["Rain", "Wet ground"] # 14 
+    # text = ["Rain", "Wet ground"] # 14
     # text = ["Rain, long street, parked car", "Rain, long street, parked car", "long street, parked car", "long street, parked car"] # 15
     # text = ["parked cars", "parked cars", "parked cars", "parked cars"] # 16
-    text = ["Heavy rain"] # 17
-
+    text = ["Heavy rain"]  # 17
 
     text_emb = clip.tokenize(text).to(args.device)
     with torch.no_grad():
-        text_features = clip_model.encode_text(text_emb) # B, 512
+        text_features = clip_model.encode_text(text_emb)  # B, 512
     timestamp = time.time()
     local_time = time.ctime(timestamp)
-    print("本地时间：",timestamp)
+    print("本地时间：", timestamp)
     xs = ddpm.sample(
         batch_size=args.batch_size,
         num_steps=args.sampling_steps,
@@ -59,7 +59,7 @@ def main(args):
     ).clamp(-1, 1)
     timestamp = time.time()
     local_time = time.ctime(timestamp)
-    print("本地时间：",timestamp)
+    print("本地时间：", timestamp)
     # =================================================================================
     # Save as image or video
     # =================================================================================
@@ -84,12 +84,24 @@ def main(args):
             t=t.to(xyz),
         )
         return img, bev
-    
-    img, bev = render(xs[-1])
-    save_image(img, "/project/r2dm-main/logs/diffusion/nuScenes/spherical-1024/forpaper/results/samples_img.png", nrow=1)
-    save_image(bev, "/project/r2dm-main/logs/diffusion/nuScenes/spherical-1024/forpaper/results/samples_bev.png", nrow=4)
 
-    video = imageio.get_writer("/project/r2dm-main/logs/diffusion/nuScenes/spherical-1024/forpaper/results/samples.mp4", mode="I", fps=60)
+    img, bev = render(xs[-1])
+    save_image(
+        img,
+        "/project/r2dm-main/logs/diffusion/nuScenes/spherical-1024/forpaper/results/samples_img.png",
+        nrow=1,
+    )
+    save_image(
+        bev,
+        "/project/r2dm-main/logs/diffusion/nuScenes/spherical-1024/forpaper/results/samples_bev.png",
+        nrow=4,
+    )
+
+    video = imageio.get_writer(
+        "/project/r2dm-main/logs/diffusion/nuScenes/spherical-1024/forpaper/results/samples.mp4",
+        mode="I",
+        fps=60,
+    )
     t = 0
     for x in tqdm(xs, desc="making video..."):
         t = t + 1
@@ -110,7 +122,11 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ckpt", type=Path, default='/project/r2dm-main/logs/diffusion/nuScenes/spherical-1024/forpaper/models/diffusion_0000400000.pth')
+    parser.add_argument(
+        "--ckpt",
+        type=Path,
+        default="/project/r2dm-main/logs/diffusion/nuScenes/spherical-1024/forpaper/models/diffusion_0000400000.pth",
+    )
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cuda")
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--sampling_steps", type=int, default=128)
