@@ -34,7 +34,9 @@ torch._dynamo.config.suppress_errors = True
 
 def train(cfg):
     torch.backends.cudnn.benchmark = True
-    project_dir = Path(cfg.output_dir) / cfg.dataset / cfg.lidar_projection
+    project_dir = (
+        Path(cfg.output_dir) / cfg.dataset / cfg.lidar_projection
+    )  # 拼接 path 定义投影路径
 
     # =================================================================================
     # Initialize accelerator
@@ -69,8 +71,9 @@ def train(cfg):
     channels = [
         1 if cfg.train_depth else 0,
         1 if cfg.train_reflectance else 0,
-    ]
+    ]  # 两个通道，分别为深度和反射强度
 
+    # 定义降噪网络 denoiser model
     if cfg.model_name == "Transdiff":
         trans = Transdiff(
             in_channels=sum(channels),
@@ -88,12 +91,14 @@ def train(cfg):
     else:
         raise ValueError(f"Unknown: {cfg.model_name}")
 
+    # 两种投影的方式：spherical 和 unfolding
     if "spherical" in cfg.lidar_projection:
         accelerator.print("set HDL-64E linear ray angles")
         trans.coords = get_hdl64e_linear_ray_angles(*cfg.resolution)
     elif "unfolding" in cfg.lidar_projection:
         accelerator.print("set dataset ray angles")
         _coords = torch.load(f"data/{cfg.dataset}/unfolding_angles.pth")
+        # 加载角度信息之后进行插值
         trans.coords = F.interpolate(_coords, size=cfg.resolution, mode="nearest-exact")
     else:
         raise ValueError(f"Unknown: {cfg.lidar_projection}")
@@ -101,6 +106,7 @@ def train(cfg):
     if accelerator.is_main_process:
         print(f"number of parameters: {utils.training.count_parameters(trans):,}")
 
+    # 选择离散或连续时间步长的 DDPM（默认为连续的时间步长）
     if cfg.diffusion_timesteps_type == "discrete":
         ddpm = DiscreteTimeGaussianDiffusion(
             denoiser=trans,
@@ -121,7 +127,7 @@ def train(cfg):
     ddpm.train()
     ddpm.to(device)
 
-    clip_model = clip.load("ViT-B/32",device=device)
+    clip_model = clip.load("ViT-B/32", device=device)
 
     if accelerator.is_main_process:
         ddpm_ema = EMA(
@@ -137,7 +143,7 @@ def train(cfg):
         image_format=cfg.image_format,
         min_depth=cfg.min_depth,
         max_depth=cfg.max_depth,
-        ray_angles=ddpm.denoiser.coords,
+        ray_angles=ddpm.denoiser.coords,  # 投影之后的坐标信息
     )
     lidar_utils.to(device)
 
@@ -153,6 +159,7 @@ def train(cfg):
         eps=cfg.adam_epsilon,
     )
 
+    # 定义数据集
     dataset = ds.load_dataset(
         path=f"data/{cfg.dataset}",
         name=cfg.lidar_projection,
@@ -173,6 +180,7 @@ def train(cfg):
         pin_memory=True,
     )
 
+    # 带有 warmup 的余弦学习率
     lr_scheduler = utils.training.get_cosine_schedule_with_warmup(
         optimizer=optimizer,
         num_warmup_steps=cfg.lr_warmup_steps * cfg.gradient_accumulation_steps,
@@ -190,12 +198,14 @@ def train(cfg):
 
     def preprocess(batch):
         x = []
+        # batch 是以字典格式存储的输入数据
         if cfg.train_depth:
             x += [lidar_utils.convert_depth(batch["depth"])]
         if cfg.train_reflectance:
             x += [lidar_utils.convert_depth(batch["reflectance"])]
-        x = torch.cat(x, dim=1)
-        x = lidar_utils.normalize(x)
+        x = torch.cat(x, dim=1)  # Equals to torch.cat((depth, reflectance), dim=1)
+        x = lidar_utils.normalize(x)  # 从 [0, 1] scale 至 [-1, 1]
+        # 重新插值，得到 [batch_size, 2, 32, 1024] 的 tensor
         x = F.interpolate(
             x.to(device),
             size=cfg.resolution,
@@ -210,7 +220,7 @@ def train(cfg):
 
     @torch.inference_mode()
     def log_images(image, tag: str = "name", global_step: int = 0):
-        image = lidar_utils.denormalize(image)
+        image = lidar_utils.denormalize(image)  # 从 [-1, 1] scale 至 [0, 1]
         out = dict()
         depth, rflct = split_channels(image)
         if depth.numel() > 0:
@@ -262,7 +272,7 @@ def train(cfg):
             # text embedding
             text_emb = clip.tokenize(text).to(device)
             with torch.no_grad():
-                text_features = clip_model.encode_text(text_emb) # B, 512
+                text_features = clip_model.encode_text(text_emb)  # B, 512
             with accelerator.accumulate(ddpm):
                 loss = ddpm(x_0=x_0, text=text_features)
                 accelerator.backward(loss)

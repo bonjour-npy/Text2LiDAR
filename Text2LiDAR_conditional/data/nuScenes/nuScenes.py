@@ -12,6 +12,7 @@ _SEQUENCE_SPLITS = {
     }
 }
 
+
 @numba.jit(nopython=True, parallel=False)
 def scatter(array, index, value):
     for (h, w), v in zip(index, value):
@@ -29,7 +30,7 @@ def load_points_as_images(
 ):
     # load xyz & intensity and add depth & mask
     # points = np.fromfile(point_path, dtype=np.float32).reshape((-1, 4))
-    point_path = os.path.join('/opt/data/private/nuScenes/', point_path)
+    point_path = os.path.join("/opt/data/private/nuScenes/", point_path)
     points = np.fromfile(point_path, dtype=np.float32).reshape((-1, 5))
     points = points[:, :4]
     xyz = points[:, :3]  # xyz
@@ -131,7 +132,11 @@ class KITTI360(ds.GeneratorBasedBuilder):
         return ds.DatasetInfo(features=ds.Features(features))
 
     def _split_generators(self, _):
-        nusc = NuScenes(version='v1.0-trainval', dataroot='/opt/data/private/nuScenes/', verbose=True)
+        nusc = NuScenes(
+            version="v1.0-trainval",
+            dataroot="/opt/data/private/nuScenes/",
+            verbose=True,
+        )
         splits = list()
         for split, subset in _SEQUENCE_SPLITS["lidargen"].items():
             lidar_paths = []
@@ -143,22 +148,24 @@ class KITTI360(ds.GeneratorBasedBuilder):
                 a = 850
                 b = 851
             for my_scene in nusc.scene[a:b]:
-                my_sample = nusc.get('sample', my_scene['first_sample_token'])
-                lidar = nusc.get('sample_data', my_sample['data']['LIDAR_TOP'])
-                lidar_paths.append(lidar['filename'])
-                lidar_text.append(my_scene['description'])
-                for i in range(my_scene['nbr_samples'] - 1):
-                    my_sample = nusc.get('sample', my_sample['next'])
-                    lidar = nusc.get('sample_data', my_sample['data']['LIDAR_TOP'])
-                    lidar_paths.append(lidar['filename'])
-                    lidar_text.append(my_scene['description']) # get all samples
+                my_sample = nusc.get("sample", my_scene["first_sample_token"])
+                lidar = nusc.get("sample_data", my_sample["data"]["LIDAR_TOP"])
+                lidar_paths.append(lidar["filename"])
+                lidar_text.append(my_scene["description"])
+                for i in range(my_scene["nbr_samples"] - 1):
+                    my_sample = nusc.get("sample", my_sample["next"])
+                    lidar = nusc.get("sample_data", my_sample["data"]["LIDAR_TOP"])
+                    lidar_paths.append(lidar["filename"])
+                    lidar_text.append(my_scene["description"])  # get all samples
             splits.append(
                 ds.SplitGenerator(
                     name=split,
-                    gen_kwargs={"items": list(zip(range(len(lidar_paths)), lidar_paths)),
-                                "text": list(zip(range(len(lidar_text)), lidar_text))},
+                    gen_kwargs={
+                        "items": list(zip(range(len(lidar_paths)), lidar_paths)),
+                        "text": list(zip(range(len(lidar_text)), lidar_text)),
+                    },
                 )
-            ) # save all samples as splited
+            )  # save all samples as splited
         return splits
 
     def _generate_examples(self, items, text):

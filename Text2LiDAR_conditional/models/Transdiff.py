@@ -11,7 +11,9 @@ from . import encoding, ops
 import torch.nn.functional as F
 from .Decoder import Decoder
 import time
+
 # from .CLIP.clip import clip
+
 
 def _join(*tensors) -> torch.Tensor:
     return torch.cat(tensors, dim=1)
@@ -23,6 +25,7 @@ def _n_tuple(x: Iterable | int, N: int) -> tuple[int]:
         return x
     else:
         return (x,) * N
+
 
 class Transdiff(nn.Module):
 
@@ -50,9 +53,15 @@ class Transdiff(nn.Module):
         temb_channels = base_channels * 4 if temb_channels is None else temb_channels
         self.rgb_backbone = T2t_vit_t_14(pretrained=False)
         # transformer
-        self.transformer = Transformer(embed_dim=384, numbers=4, num_heads=4, mlp_ratio=3.)
-        self.token_trans = token_Transformer(embed_dim=384, depth=4, num_heads=6, mlp_ratio=3.)
-        self.decoder = Decoder(embed_dim=384, token_dim=64, depth=2, img_size=[32, 1024])
+        self.transformer = Transformer(
+            embed_dim=384, numbers=4, num_heads=4, mlp_ratio=3.0
+        )
+        self.token_trans = token_Transformer(
+            embed_dim=384, depth=4, num_heads=6, mlp_ratio=3.0
+        )
+        self.decoder = Decoder(
+            embed_dim=384, token_dim=64, depth=2, img_size=[32, 1024]
+        )
         # spatial coords embedding
         coords = encoding.generate_polar_coords(*self.resolution)
         self.in_conv = ops.Conv2d(32, 64, 3, 1, 1, ring=ring)
@@ -81,28 +90,30 @@ class Transdiff(nn.Module):
             nn.SiLU(),
             nn.Linear(384, 384),
         )
-        
+
         # parameters for up/down-sampling blocks
         updown_levels = 4
         channel_multiplier = _n_tuple(channel_multiplier, updown_levels)
         C = [base_channels] + [base_channels * m for m in channel_multiplier]
         N = _n_tuple(num_residual_blocks, updown_levels)
 
-    def forward(self, images: torch.Tensor, timesteps: torch.Tensor, text: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, images: torch.Tensor, timesteps: torch.Tensor, text: torch.Tensor
+    ) -> torch.Tensor:
         h = images
 
         # text embedding
-        text_emb = self.text_embedding(text.float()) # B, 384
+        text_emb = self.text_embedding(text.float())  # B, 384
 
         # timestep embedding
         if len(timesteps.shape) == 0:
             timesteps = timesteps[None].repeat_interleave(h.shape[0], dim=0)
-        temb = self.time_embedding(timesteps.to(h)) # B,384
-        
+        temb = self.time_embedding(timesteps.to(h))  # B,384
+
         # spatial embedding
         if self.coords_embedding is not None:
             cemb = self.coords_embedding(self.coords)
-            cemb = cemb.repeat_interleave(h.shape[0], dim=0) # B, 32, 64, 1024
+            cemb = cemb.repeat_interleave(h.shape[0], dim=0)  # B, 32, 64, 1024
             # cemb = self.coords_transfer(cemb) # B, 1, 64, 1024
             # h = torch.cat([h, cemb], dim=1)
 
@@ -110,11 +121,14 @@ class Transdiff(nn.Module):
         h = torch.cat([h, cemb], dim=1)
         h = self.in_conv(h)
         # start_time = time.time()
-        h_1_16, h_1_8, h_1_4, h_1_2 = self.rgb_backbone(h, temb) # h_1_16=B,128(2*64),384  # h_1_8=B,512(4*128),64  # h_1_4=B,2048(8*256),64
-        h_1_16 = self.transformer(h_1_16) # B, 128, 384
+        h_1_16, h_1_8, h_1_4, h_1_2 = self.rgb_backbone(
+            h, temb
+        )  # h_1_16=B,128(2*64),384  # h_1_8=B,512(4*128),64  # h_1_4=B,2048(8*256),64
+        h_1_16 = self.transformer(h_1_16)  # B, 128, 384
         saliency_h_1_16, h_1_16 = self.token_trans(h_1_16, temb, text_emb)
-        output, output_multi = self.decoder(saliency_h_1_16, h_1_16, h_1_8, h_1_4, h_1_2, temb, text_emb)
+        output, output_multi = self.decoder(
+            saliency_h_1_16, h_1_16, h_1_8, h_1_4, h_1_2, temb, text_emb
+        )
         # end_time = time.time()
         # print("程序运行时间：%.2f秒" % (end_time - start_time))
         return output, output_multi
-    
