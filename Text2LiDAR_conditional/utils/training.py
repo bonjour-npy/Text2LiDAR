@@ -8,7 +8,9 @@ from torch.optim.lr_scheduler import LambdaLR
 
 @dataclasses.dataclass
 class TrainingConfig:
-    dataset: Literal["kitti_raw", "kitti_360", "nuScenes"] = "nuScenes"
+    dataset: Literal["kitti_raw", "kitti_360", "nuScenes", "nuLiDARText"] = (
+        "nuLiDARText"  # 默认数据集是 nuScenes
+    )
     image_format: str = "log_depth"
     lidar_projection: Literal[
         "unfolding-2048",
@@ -59,7 +61,9 @@ class TrainingConfig:
     diffusion_num_sampling_steps: int = 128
     diffusion_objective: Literal["eps", "v", "x_0"] = "eps"
     diffusion_beta_schedule: str = "cosine"  # Cosine Noise Schedule
-    diffusion_timesteps_type: Literal["continuous", "discrete"] = "continuous"
+    diffusion_timesteps_type: Literal["continuous", "discrete"] = (
+        "continuous"  # 连续时间步长的扩散模型
+    )
 
 
 # 带有 warmup 的余弦学习率

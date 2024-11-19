@@ -19,8 +19,8 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 
-import utils.render
-import utils.training
+import utils.render  # 渲染
+import utils.training  # load the training config
 from models.diffusion import (
     ContinuousTimeGaussianDiffusion,
     DiscreteTimeGaussianDiffusion,
@@ -36,7 +36,7 @@ def train(cfg):
     torch.backends.cudnn.benchmark = True
     project_dir = (
         Path(cfg.output_dir) / cfg.dataset / cfg.lidar_projection
-    )  # 拼接 path 定义投影路径
+    )  # default value of cfg.output_dir is "logs/diffusion"
 
     # =================================================================================
     # Initialize accelerator
@@ -63,6 +63,7 @@ def train(cfg):
             indent=4,
         )
     device = accelerator.device
+    print(f"Using device(s): {device}")
 
     # =================================================================================
     # Setup models
@@ -92,9 +93,10 @@ def train(cfg):
         raise ValueError(f"Unknown: {cfg.model_name}")
 
     # 两种投影的方式：spherical 和 unfolding
-    if "spherical" in cfg.lidar_projection:
+    if "spherical" in cfg.lidar_projection:  # 默认为 spherical-1024
         accelerator.print("set HDL-64E linear ray angles")
-        trans.coords = get_hdl64e_linear_ray_angles(*cfg.resolution)
+        # 获取 HDL-64E 的线性角度信息，返回仰角和方位角的弧度数据
+        trans.coords = get_hdl64e_linear_ray_angles(*cfg.resolution, device=device)
     elif "unfolding" in cfg.lidar_projection:
         accelerator.print("set dataset ray angles")
         _coords = torch.load(f"data/{cfg.dataset}/unfolding_angles.pth")
@@ -198,7 +200,7 @@ def train(cfg):
 
     def preprocess(batch):
         x = []
-        # batch 是以字典格式存储的输入数据
+        # batch 是以字典格式存储的输入数据，从 dataloader 中获取
         if cfg.train_depth:
             x += [lidar_utils.convert_depth(batch["depth"])]
         if cfg.train_reflectance:
@@ -260,6 +262,7 @@ def train(cfg):
     while global_step < cfg.num_steps:
         ddpm.train()
         for batch in dataloader:
+            # preprocess 处理 dataloader 返回的数据，得到图像和对应文本
             x_0, text = preprocess(batch)
             # out = x_0[0:1, 0:1, :, :].cpu().detach().numpy()
             # out = out.squeeze()

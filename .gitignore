@@ -1,4 +1,6 @@
-nuLiDARtext/
+nuLiDARText/
 .vscode
 nuScenes/
 .idea
+Text2LiDAR_conditional/data
+**/__pycache__/
