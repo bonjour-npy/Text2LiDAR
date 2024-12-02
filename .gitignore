@@ -3,4 +3,12 @@ nuLiDARText/
 nuScenes/
 .idea
 Text2LiDAR_conditional/data
+Text2LiDAR_conditional/logs
+Text2LiDAR_conditional/timm
 **/__pycache__/
+Text2LiDAR_unconditional/data
+Text2LiDAR_unconditional/logs
+Text2LiDAR_unconditional/timm
+.mypy_cache/
+Text2LiDAR_unconditional/real_set_kitti_360_spherical-1024_64x1024_all.pkl
+

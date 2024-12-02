@@ -8,9 +8,7 @@ from torch.optim.lr_scheduler import LambdaLR
 
 @dataclasses.dataclass
 class TrainingConfig:
-    dataset: Literal["kitti_raw", "kitti_360", "nuScenes", "nuLiDARText"] = (
-        "nuLiDARText"  # 默认数据集是 nuScenes
-    )
+    dataset: Literal["kitti_raw", "kitti_360", "nuScenes", "nuLiDARText"] = "nuLiDARText"  # 默认数据集是 nuScenes
     image_format: str = "log_depth"
     lidar_projection: Literal[
         "unfolding-2048",
@@ -24,12 +22,14 @@ class TrainingConfig:
     resolution: tuple[int, int] = (32, 1024)  # (64, 1024) for 64-beam LiDAR
     min_depth = 1.45
     max_depth = 80.0
-    batch_size_train: int = 8  # 16
-    batch_size_eval: int = 2
+    # batch_size_train: int = 8  # 16
+    batch_size_train: int = 16  # 4 * 3090
+    batch_size_eval: int = 4  # 2
     num_workers: int = 16
-    num_steps: int = 400_000  # 800_000
+    num_steps: int = 300_000  # 800_000
     save_image_steps: int = 5_000  # 5_000
-    save_model_steps: int = 100_000  # 10_000
+    save_model_steps: int = 50_000  # 10_000
+    # save_model_steps: int = 100_000
     gradient_accumulation_steps: int = 1
     criterion: str = "l2"  # L2 范式损失函数
     # 一些训练参数
@@ -53,17 +53,15 @@ class TrainingConfig:
     model_gn_num_groups: int = 32 // 4
     model_gn_eps: float = 1e-6
     model_attn_num_heads: int = 8
-    model_coords_embedding: Literal[
-        "spherical_harmonics", "polar_coordinates", "fourier_features", None
-    ] = "fourier_features"  # 球谐函数、极坐标角度、傅里叶特征
+    model_coords_embedding: Literal["spherical_harmonics", "polar_coordinates", "fourier_features", None] = (
+        "fourier_features"  # 球谐函数、极坐标角度、傅里叶特征
+    )
     model_dropout: float = 0.0
     diffusion_num_training_steps: int = 1024
     diffusion_num_sampling_steps: int = 128
     diffusion_objective: Literal["eps", "v", "x_0"] = "eps"
     diffusion_beta_schedule: str = "cosine"  # Cosine Noise Schedule
-    diffusion_timesteps_type: Literal["continuous", "discrete"] = (
-        "continuous"  # 连续时间步长的扩散模型
-    )
+    diffusion_timesteps_type: Literal["continuous", "discrete"] = "continuous"  # 连续时间步长的扩散模型
 
 
 # 带有 warmup 的余弦学习率
@@ -79,13 +77,9 @@ def get_cosine_schedule_with_warmup(
         if current_step < num_warmup_steps:
             return float(current_step) / float(max(1, num_warmup_steps))
         # 在 warmup 阶段外计算训练进度
-        progress = float(current_step - num_warmup_steps) / float(
-            max(1, num_training_steps - num_warmup_steps)
-        )
+        progress = float(current_step - num_warmup_steps) / float(max(1, num_training_steps - num_warmup_steps))
         # 根据 cosine 函数计算学习率
-        return max(
-            0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress))
-        )
+        return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)))
 
     return LambdaLR(optimizer, lr_lambda, last_epoch)
 

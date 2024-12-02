@@ -53,6 +53,7 @@ def sample(args):
     with accelerator.main_process_first():
         save_dir.mkdir(parents=True, exist_ok=True)
 
+    # 后处理，将生成结果转换为 LiDAR 点云
     def postprocess(sample):
         sample = lidar_utils.denormalize(sample)
         depth, rflct = sample[:, [0]], sample[:, [1]]
@@ -60,6 +61,7 @@ def sample(args):
         xyz = lidar_utils.to_xyz(depth)
         return torch.cat([depth, xyz, rflct], dim=1)
 
+    # 遍历一次 dataloader，取其中的数值作为随机种子生成样本
     for seeds in tqdm(
         dataloader,
         desc="saving...",
@@ -81,10 +83,10 @@ def sample(args):
         #     ).clamp(-1, 1)
 
         samples = ddpm.sample(
-                batch_size=len(seeds),
-                num_steps=args.num_steps,
-                rng=utils.inference.setup_rng(seeds.cpu().tolist(), device=device),
-                progress=False,
+            batch_size=len(seeds),  # dataloader 是存放随机种子
+            num_steps=args.num_steps,
+            rng=utils.inference.setup_rng(seeds.cpu().tolist(), device=device),
+            progress=False,
         ).clamp(-1, 1)
 
         samples = postprocess(samples)
@@ -98,9 +100,19 @@ def sample(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--ckpt", type=str, default='/project/r2dm-transformer-5decoder-dwt/logs/diffusion/kitti_360/spherical-1024/dwt-convpos/models/diffusion_0000300000.pth')
-    parser.add_argument("--output_dir", type=str, default='/project/r2dm-transformer-5decoder-dwt/logs/diffusion/kitti_360/spherical-1024/dwt-convpos/results')
-    parser.add_argument("--batch_size", type=int, default=16)
+    # parser.add_argument("--ckpt", type=str, default='/project/r2dm-transformer-5decoder-dwt/logs/diffusion/kitti_360/spherical-1024/dwt-convpos/models/diffusion_0000300000.pth')
+    # parser.add_argument("--output_dir", type=str, default='/project/r2dm-transformer-5decoder-dwt/logs/diffusion/kitti_360/spherical-1024/dwt-convpos/results')
+    parser.add_argument(
+        "--ckpt",
+        type=str,
+        default="/home/nipeiyang/codes/Text2LiDAR/Text2LiDAR_unconditional/logs/diffusion/kitti_360/spherical-1024/20241125T131019/models/diffusion_0000300000.pth",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="/home/nipeiyang/codes/Text2LiDAR/Text2LiDAR_unconditional/logs/diffusion/kitti_360/spherical-1024/20241125T131019/results",
+    )
+    parser.add_argument("--batch_size", type=int, default=35)  # 5 * 3090
     parser.add_argument("--num_samples", type=int, default=10_000)
     parser.add_argument("--num_steps", type=int, default=256)
     args = parser.parse_args()

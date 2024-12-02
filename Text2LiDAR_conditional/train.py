@@ -51,6 +51,7 @@ def train(cfg):
         split_batches=True,
         step_scheduler_with_optimizer=True,
     )
+    
     if accelerator.is_main_process:
         print(cfg)
         os.makedirs(project_dir, exist_ok=True)
@@ -167,7 +168,9 @@ def train(cfg):
         name=cfg.lidar_projection,
         split=ds.Split.TRAIN,
         num_proc=cfg.num_workers,
+        trust_remote_code=True,
     ).with_format("torch")
+    # 在环境变量中指定 dataset cache，指定后默认目录为 ~/.cache/huggingface/datasets/
     # cache_dir = '/project/r2dm-main/datacache/',
 
     if accelerator.is_main_process:
@@ -190,9 +193,7 @@ def train(cfg):
     )
 
     # Comment out these codes during debugging
-    ddpm, optimizer, dataloader, lr_scheduler = accelerator.prepare(
-        ddpm, optimizer, dataloader, lr_scheduler
-    )
+    ddpm, optimizer, dataloader, lr_scheduler = accelerator.prepare(ddpm, optimizer, dataloader, lr_scheduler)
 
     # =================================================================================
     # Utility
@@ -229,9 +230,7 @@ def train(cfg):
             out[f"{tag}/depth"] = utils.render.colorize(depth)
             metric = lidar_utils.revert_depth(depth)
             mask = (metric > lidar_utils.min_depth) & (metric < lidar_utils.max_depth)
-            out[f"{tag}/depth/orig"] = utils.render.colorize(
-                metric / lidar_utils.max_depth
-            )
+            out[f"{tag}/depth/orig"] = utils.render.colorize(metric / lidar_utils.max_depth)
             xyz = lidar_utils.to_xyz(metric) / lidar_utils.max_depth * mask
             normal = -utils.render.estimate_surface_normal(xyz)
             normal = lidar_utils.denormalize(normal)

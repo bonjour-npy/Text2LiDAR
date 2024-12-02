@@ -410,22 +410,25 @@ def _download_pretrained_weights(
 
     # set the cache directory
     hub_dir = torch.hub.get_dir()
-    model_dir = os.path.join(hub_dir, "checkpoints")
+    model_dir = os.path.join(hub_dir, "checkpoints")  # rangenet 权重缓存路径
+    print(f"RangeNet weights cache directory: {model_dir}")
     os.makedirs(model_dir, exist_ok=True)
 
+    # comment here
     # download the tar file
-    # url = f"http://www.ipb.uni-bonn.de/html/projects/bonnetal/lidar/semantic/models/{arch}.tar.gz"
-    # parts = urlparse(url)
-    # filename = os.path.basename(parts.path)
-    # cached_file = os.path.join(model_dir, filename)
-    # if not os.path.exists(cached_file):
-    #     sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
-    #     hash_prefix = None
-    #     torch.hub.download_url_to_file(url, cached_file, hash_prefix, progress=progress)
+    url = f"http://www.ipb.uni-bonn.de/html/projects/bonnetal/lidar/semantic/models/{arch}.tar.gz"
+    parts = urlparse(url)
+    filename = os.path.basename(parts.path)
+    cached_file = os.path.join(model_dir, filename)
+    if not os.path.exists(cached_file):
+        sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
+        hash_prefix = None
+        torch.hub.download_url_to_file(url, cached_file, hash_prefix, progress=progress)
+    # comment ends here
 
     # parse the downloaded tar file
     state_dict = OrderedDict()
-    cached_file = '/project/r2dm-main/darknet53-1024.tar.gz'
+    # cached_file = "/project/r2dm-main/darknet53-1024.tar.gz"
     with tarfile.open(cached_file, "r:gz") as tar:
         members = list(map(lambda m: m.name, tar.getmembers()))
         for member in (

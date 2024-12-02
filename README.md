@@ -31,3 +31,13 @@ You can also refer to this [nuScenes 数据集一文弄懂](https://mp.weixin.qq
 - `instance.json`：存储某一 scene 中标注的实例信息，如载具、行人等，每个 instance 可能在同一 scene 的不同 sample 中都有标注。
 - `sample_annotation.json`：记录从 sample 关键帧中标注的 bounding box 信息，以及对应的实例（instance）、属性（attribute）以及可见度（visibility）。一个 sample 关键帧可以拥有多个 annotation。
 - nuLiDARtext 和 nuScenes 的配对文本描述主要存储于 `scene.json` 中，可以与 nuScenes 中的 `scene.json` 进行比较，查看 nuLiDARtext 的作者进行的针对性修改。
+
+## 复现细节记录
+
+### Text2LiDAR Conditional
+
+### Text2LiDAR Unconditional
+
+1. 使用 KITTI 360 数据集官方提供的[下载脚本](https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/a1d81d9f7fc7195c937f9ad12e2a2c66441ecb4e/download_3d_velodyne.zip)进行下载和解压，最终得到后缀为 .bin 的 LiDAR 数据共 76,715 帧
+2. 根据论文中的表述，50,348 帧用于训练，其余的 26,367 帧用于测试
+3. 

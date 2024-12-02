@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.hub import load_state_dict_from_url
 
+import os
+
 
 class STN3d(nn.Module):
     def __init__(self):
@@ -86,7 +88,8 @@ def pretrained_pointnet(dataset="shapenet", device="cpu", compile=True):
         state_dict = load_state_dict_from_url(
             url="https://github.com/microsoft/SpareNet/raw/main/Frechet/cls_model_39.pth",
             progress=True,
-            model_dir='/project/r2dm-main',
+            model_dir=os.path.join(torch.hub.get_dir(), "checkpoints"),
+            # model_dir='/project/r2dm-main',
         )
     else:
         raise ValueError(f"Unknown dataset: {dataset}")

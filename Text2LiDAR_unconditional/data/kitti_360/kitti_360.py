@@ -117,7 +117,8 @@ class KITTI360(ds.GeneratorBasedBuilder):
         ds.BuilderConfig(
             name="spherical-1024",
             description="spherical projection, 64x1024 resolution",
-            data_dir="/opt/data/private/KITTI-360/data_3d_raw",
+            # data_dir="/opt/data/private/KITTI-360/data_3d_raw",
+            data_dir="/home/nipeiyang/codes/Text2LiDAR/Text2LiDAR_unconditional/data/KITTI-360/data_3d_raw",
         ),
     ]
 

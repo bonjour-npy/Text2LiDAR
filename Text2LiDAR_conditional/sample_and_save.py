@@ -81,10 +81,10 @@ def sample(args):
         #     ).clamp(-1, 1)
 
         samples = ddpm.sample(
-                batch_size=len(seeds),
-                num_steps=args.num_steps,
-                rng=utils.inference.setup_rng(seeds.cpu().tolist(), device=device),
-                progress=False,
+            batch_size=len(seeds),
+            num_steps=args.num_steps,
+            rng=utils.inference.setup_rng(seeds.cpu().tolist(), device=device),
+            progress=False,
         ).clamp(-1, 1)
 
         samples = postprocess(samples)
@@ -98,9 +98,19 @@ def sample(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--ckpt", type=str, default='/project/r2dm-main/logs/diffusion/kitti_360/spherical-1024/transformer_400000/models/diffusion_0000400000.pth')
-    parser.add_argument("--output_dir", type=str, default='/project/r2dm-main/logs/diffusion/kitti_360/spherical-1024/transformer_400000/results')
-    parser.add_argument("--batch_size", type=int, default=64)
+    # parser.add_argument("--ckpt", type=str, default='/project/r2dm-main/logs/diffusion/kitti_360/spherical-1024/transformer_400000/models/diffusion_0000400000.pth')
+    # parser.add_argument("--output_dir", type=str, default='/project/r2dm-main/logs/diffusion/kitti_360/spherical-1024/transformer_400000/results')
+    parser.add_argument(
+        "--ckpt",
+        type=str,
+        default="/home/nipeiyang/codes/Text2LiDAR/Text2LiDAR_conditional/logs/diffusion/nuLiDARText/spherical-1024/20241121T081100/models/diffusion_0000300000.pth",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="/home/nipeiyang/codes/Text2LiDAR/Text2LiDAR_conditional/logs/diffusion/nuLiDARText/spherical-1024/20241121T081100/results",
+    )
+    parser.add_argument("--batch_size", type=int, default=60)
     parser.add_argument("--num_samples", type=int, default=10_000)
     parser.add_argument("--num_steps", type=int, default=256)
     args = parser.parse_args()

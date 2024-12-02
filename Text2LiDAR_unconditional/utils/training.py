@@ -8,7 +8,8 @@ from torch.optim.lr_scheduler import LambdaLR
 
 @dataclasses.dataclass
 class TrainingConfig:
-    dataset: Literal["kitti_raw", "kitti_360", "nuScenes"] = "kitti_360"
+    # dataset: Literal["kitti_raw", "kitti_360", "nuScenes"] = "kitti_360"
+    dataset: Literal["kitti_raw", "kitti_360", "nuScenes", "KITTI-360"] = "KITTI-360"
     image_format: str = "log_depth"
     lidar_projection: Literal[
         "unfolding-2048",
@@ -18,19 +19,21 @@ class TrainingConfig:
     ] = "spherical-1024"
     train_depth: bool = True
     train_reflectance: bool = True
-    train_mask: bool = True # True
+    train_mask: bool = True  # True
     resolution: tuple[int, int] = (64, 1024)
     min_depth = 1.45
     max_depth = 80.0
-    batch_size_train: int =2
+    # batch_size_train: int = 2
+    batch_size_train: int = 8  # 4 * 3090
     batch_size_eval: int = 4
     num_workers: int = 16
     num_steps: int = 300_000
-    save_image_steps: int = 5_000
-    save_model_steps: int = 30_000
+    save_image_steps: int = 5_000  # 5_000
+    # save_model_steps: int = 30_000
+    save_model_steps: int = 50_000  # 每 50k 步保存一次模型
     gradient_accumulation_steps: int = 1
     criterion: str = "l2"
-    lr: float = 2e-4
+    lr: float = 2e-4  # 论文中给出的数据是 1e-4
     lr_warmup_steps: int = 16_000
     adam_beta1: float = 0.9
     adam_beta2: float = 0.99
@@ -40,19 +43,19 @@ class TrainingConfig:
     ema_update_every: int = 10
     output_dir: str = "logs/diffusion"
     seed: int = 0
-    mixed_precision: str = "no" # "fp16", "no"
-    dynamo_backend: str = None # "inductor", "no", None
+    mixed_precision: str = "no"  # "fp16", "no"
+    dynamo_backend: str = None  # "inductor", "no", None
     model_name: str = "Transdiff"
     model_base_channels: int = 64
-    model_temb_channels: int = 384 # int | None = None
+    model_temb_channels: int = 384  # int | None = None
     model_channel_multiplier: tuple[int] | int = (1, 2, 4, 8)
     model_num_residual_blocks: tuple[int] | int = 3
     model_gn_num_groups: int = 32 // 4
     model_gn_eps: float = 1e-6
     model_attn_num_heads: int = 8
-    model_coords_embedding: Literal[
-        "spherical_harmonics", "polar_coordinates", "fourier_features", None
-    ] = "fourier_features"
+    model_coords_embedding: Literal["spherical_harmonics", "polar_coordinates", "fourier_features", None] = (
+        "fourier_features"
+    )
     model_dropout: float = 0.0
     diffusion_num_training_steps: int = 1024
     diffusion_num_sampling_steps: int = 128
@@ -71,12 +74,8 @@ def get_cosine_schedule_with_warmup(
     def lr_lambda(current_step):
         if current_step < num_warmup_steps:
             return float(current_step) / float(max(1, num_warmup_steps))
-        progress = float(current_step - num_warmup_steps) / float(
-            max(1, num_training_steps - num_warmup_steps)
-        )
-        return max(
-            0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress))
-        )
+        progress = float(current_step - num_warmup_steps) / float(max(1, num_training_steps - num_warmup_steps))
+        return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)))
 
     return LambdaLR(optimizer, lr_lambda, last_epoch)
 

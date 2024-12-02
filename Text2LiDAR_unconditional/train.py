@@ -151,7 +151,7 @@ def train(cfg):
     )
 
     dataset = ds.load_dataset(
-        path=f"data/{cfg.dataset}",
+        path=f"data/{cfg.dataset}",  # 原始代码是 kitti_360，从 data/kitti_360 中根据对应脚本读取数据
         name=cfg.lidar_projection,
         split=ds.Split.TRAIN,
         num_proc=cfg.num_workers,
@@ -177,9 +177,7 @@ def train(cfg):
     )
 
     # Comment out these codes during debugging
-    ddpm, optimizer, dataloader, lr_scheduler = accelerator.prepare(
-        ddpm, optimizer, dataloader, lr_scheduler
-    )
+    ddpm, optimizer, dataloader, lr_scheduler = accelerator.prepare(ddpm, optimizer, dataloader, lr_scheduler)
 
     # =================================================================================
     # Utility
@@ -213,9 +211,7 @@ def train(cfg):
             out[f"{tag}/depth"] = utils.render.colorize(depth)
             metric = lidar_utils.revert_depth(depth)
             mask = (metric > lidar_utils.min_depth) & (metric < lidar_utils.max_depth)
-            out[f"{tag}/depth/orig"] = utils.render.colorize(
-                metric / lidar_utils.max_depth
-            )
+            out[f"{tag}/depth/orig"] = utils.render.colorize(metric / lidar_utils.max_depth)
             xyz = lidar_utils.to_xyz(metric) / lidar_utils.max_depth * mask
             normal = -utils.render.estimate_surface_normal(xyz)
             normal = lidar_utils.denormalize(normal)
